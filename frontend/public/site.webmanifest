@@ -1,0 +1,109 @@
+{
+  "name": "Bookracy — Why pay for knowledge?",
+  "short_name": "Bookracy",
+  "description": "Free access to millions of books, comics, manga, articles and publications. Read online or download — no paywalls.",
+  "id": "/",
+  "start_url": "/?utm_source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#16161a",
+  "theme_color": "#7c3aed",
+  "categories": ["books", "education", "reference", "entertainment"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "824x1648",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Search and read millions of free books on your phone"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Browse the Bookracy library on the web"
+    }
+  ],
+  "display_override": ["standalone", "minimal-ui"],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "file_handlers": [
+    {
+      "action": "/library?open=file",
+      "accept": {
+        "application/epub+zip": [".epub"],
+        "application/pdf": [".pdf"],
+        "application/vnd.comicbook+zip": [".cbz"],
+        "application/vnd.comicbook-rar": [".cbr"],
+        "application/x-mobipocket-ebook": [".mobi"],
+        "application/vnd.amazon.ebook": [".azw3", ".azw"],
+        "application/x-fictionbook+xml": [".fb2"],
+        "image/vnd.djvu": [".djvu"]
+      },
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }],
+      "launch_type": "single-client"
+    }
+  ],
+  "share_target": {
+    "action": "/library?open=share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "book",
+          "accept": ["application/epub+zip", "application/pdf", ".epub", ".pdf", ".cbz", ".cbr", ".mobi", ".azw3", ".azw", ".fb2", ".djvu"]
+        }
+      ]
+    }
+  },
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Search books",
+      "short_name": "Search",
+      "description": "Search millions of free books, comics and manga",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "My Library",
+      "short_name": "Library",
+      "description": "Downloaded books, ready to read offline",
+      "url": "/library",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "My Bookshelf",
+      "short_name": "Bookshelf",
+      "description": "Your saved books and reading progress",
+      "url": "/lists",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

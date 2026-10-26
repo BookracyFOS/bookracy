@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://bookracy.com/</loc>
+    <image:image>
+      <image:loc>https://bookracy.com/og-image.png</image:loc>
+      <image:title>Bookracy — Why pay for knowledge?</image:title>
+      <image:caption>Free, open-source library of millions of books, comics, manga, articles and publications.</image:caption>
+    </image:image>
+    <image:image>
+      <image:loc>https://bookracy.com/icon-512.png</image:loc>
+      <image:title>Bookracy app icon</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://bookracy.com/apple-touch-icon.png</image:loc>
+      <image:title>Bookracy touch icon</image:title>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://bookracy.com/about</loc>
+    <image:image>
+      <image:loc>https://bookracy.com/og-image.png</image:loc>
+      <image:title>About Bookracy — knowledge should be free</image:title>
+    </image:image>
+  </url>
+</urlset>

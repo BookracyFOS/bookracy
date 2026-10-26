@@ -1,0 +1,313 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: hsl(0 0% 100%);
+  --foreground: hsl(20 14.3% 4.1%);
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(20 14.3% 4.1%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(20 14.3% 4.1%);
+  --primary: hsl(262.1 83.3% 57.8%);
+  --primary-foreground: hsl(210 20% 98%);
+  --secondary: hsl(60 4.8% 95.9%);
+  --secondary-foreground: hsl(24 9.8% 10%);
+  --muted: hsl(60 4.8% 95.9%);
+  --muted-foreground: hsl(25 5.3% 44.7%);
+  --accent: hsl(60 4.8% 95.9%);
+  --accent-foreground: hsl(24 9.8% 10%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(60 9.1% 97.8%);
+  --border: hsl(20 5.9% 90%);
+  --input: hsl(20 5.9% 90%);
+  --ring: hsl(20 14.3% 4.1%);
+  --radius: 0.5rem;
+  --chart-1: hsl(12 76% 61%);
+  --chart-2: hsl(173 58% 39%);
+  --chart-3: hsl(197 37% 24%);
+  --chart-4: hsl(43 74% 66%);
+  --chart-5: hsl(27 87% 67%);
+
+  /* Subtle frosted-glass surfaces (light) */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg-strong: rgba(255, 255, 255, 0.82);
+  --glass-bg-subtle: rgba(0, 0, 0, 0.03);
+  --glass-border: rgba(0, 0, 0, 0.07);
+  --glass-sheen: rgba(255, 255, 255, 0.75);
+}
+
+.dark {
+  --background: hsl(20 14.3% 4.1%);
+  --foreground: hsl(60 9.1% 97.8%);
+  --card: hsl(20 14.3% 4.1%);
+  --card-foreground: hsl(60 9.1% 97.8%);
+  --popover: hsl(20 14.3% 4.1%);
+  --popover-foreground: hsl(60 9.1% 97.8%);
+  --primary: hsl(263.4 70% 50.4%);
+  --primary-foreground: hsl(210 20% 98%);
+  --secondary: hsl(12 6.5% 15.1%);
+  --secondary-foreground: hsl(60 9.1% 97.8%);
+  --muted: hsl(12 6.5% 15.1%);
+  --muted-foreground: hsl(24 5.4% 63.9%);
+  --accent: hsl(12 6.5% 15.1%);
+  --accent-foreground: hsl(60 9.1% 97.8%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(60 9.1% 97.8%);
+  --border: hsl(12 6.5% 15.1%);
+  --input: hsl(12 6.5% 15.1%);
+  --ring: hsl(24 5.7% 82.9%);
+  --chart-1: hsl(220 70% 50%);
+  --chart-2: hsl(160 60% 45%);
+  --chart-3: hsl(30 80% 55%);
+  --chart-4: hsl(280 65% 60%);
+  --chart-5: hsl(340 75% 55%);
+
+  /* Black glass (dark) — a deep frosted-black surface, kept dark with a faint
+     top sheen + hairline edge so it reads as glass, not a grey panel. */
+  --glass-bg: rgba(18, 18, 22, 0.6);
+  --glass-bg-strong: rgba(22, 22, 26, 0.72);
+  --glass-bg-subtle: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-sheen: rgba(255, 255, 255, 0.07);
+}
+
+@theme inline {
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --font-sans:
+    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Ambient primary-tinted glow behind the content area (dark only). It's painted
+   over the opaque content panel as a background-image, so it never affects text
+   contrast — but the frosted glass surfaces blur/refract it, which is what makes
+   the glassmorphism actually read as glass rather than flat dark panels. */
+.dark #main {
+  background-image:
+    radial-gradient(900px 520px at 14% -6%, color-mix(in srgb, var(--primary) 11%, transparent), transparent 60%),
+    radial-gradient(760px 560px at 104% 4%, color-mix(in srgb, var(--primary) 7%, transparent), transparent 55%);
+  background-repeat: no-repeat;
+}
+
+/* ----------------------------------------------------------------------------
+   Subtle glassmorphism helpers — a light frost to modernise the dark UI.
+   ------------------------------------------------------------------------- */
+@layer components {
+  /* NOTE: backgrounds are `!important` so the frosted surface always wins over a
+     base `bg-card` / `bg-popover` / `bg-background` utility (Tailwind v4 paints the
+     utilities layer after components, so a bare `.glass` on a <Card> would otherwise
+     render as the opaque `--card` — i.e. fake glass). */
+  .glass {
+    background: var(--glass-bg) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-sheen),
+      0 10px 30px -18px rgba(0, 0, 0, 0.55);
+  }
+  .glass-strong {
+    background: var(--glass-bg-strong) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-sheen),
+      0 10px 30px -18px rgba(0, 0, 0, 0.55);
+  }
+  .glass-subtle {
+    background: var(--glass-bg-subtle) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid var(--glass-border);
+  }
+  .glass-hover {
+    transition:
+      transform 0.2s ease,
+      background 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+  .glass-hover:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--glass-border) 60%, var(--primary));
+    background: var(--glass-bg-strong) !important;
+    box-shadow:
+      inset 0 1px 0 var(--glass-sheen),
+      0 16px 38px -20px rgba(0, 0, 0, 0.65);
+  }
+
+  /* Apple-ish "liquid glass" orb — a frosted, tinted blob with a top sheen and a
+     soft inner glow. Used for hero/empty-state icons (e.g. the 404 page). */
+  .liquid-orb {
+    position: relative;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--primary) 38%, transparent), color-mix(in srgb, var(--primary) 8%, transparent));
+    border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(170%);
+    backdrop-filter: blur(14px) saturate(170%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -10px 22px -12px color-mix(in srgb, var(--primary) 65%, transparent),
+      0 22px 45px -20px color-mix(in srgb, var(--primary) 75%, transparent);
+  }
+  .liquid-orb::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(120% 80% at 30% 18%, rgba(255, 255, 255, 0.5), transparent 55%);
+    opacity: 0.65;
+    pointer-events: none;
+  }
+}
+
+/* Modern skeleton shimmer (sweeping highlight). */
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.08), transparent);
+  animation: var(--animate-shimmer);
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Slim, frosted scrollbars. (--muted-foreground is already a full hsl() color, so
+   the old `hsl(var(--muted-foreground) / 0.3)` nested hsl() was invalid and silently
+   fell back to the UA default — color-mix is the correct way to add alpha here.) */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--muted-foreground) 35%, transparent) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--muted-foreground) 35%, transparent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--muted-foreground) 55%, transparent);
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Keep Sonner toasts clear of iOS safe areas (notch / Dynamic Island / home
+   indicator / side cut-outs) in the installed PWA. We override Sonner's inline
+   offset variables; max() preserves the normal gap when there's no inset.
+   --mobile-offset-* applies on phones (Sonner's ≤600px breakpoint). */
+[data-sonner-toaster] {
+  --offset-top: max(env(safe-area-inset-top), 1.5rem) !important;
+  --offset-right: max(env(safe-area-inset-right), 1.5rem) !important;
+  --offset-bottom: max(env(safe-area-inset-bottom), 1.5rem) !important;
+  --offset-left: max(env(safe-area-inset-left), 1.5rem) !important;
+  --mobile-offset-top: max(env(safe-area-inset-top), 1rem) !important;
+  --mobile-offset-right: max(env(safe-area-inset-right), 1rem) !important;
+  --mobile-offset-bottom: max(env(safe-area-inset-bottom), 1rem) !important;
+  --mobile-offset-left: max(env(safe-area-inset-left), 1rem) !important;
+}

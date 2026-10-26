@@ -1,0 +1,51 @@
+# Security headers for the Bookracy SPA (Cloudflare Workers static assets).
+# This file is parsed by Workers and applied to static-asset responses; it is not
+# itself served. See https://developers.cloudflare.com/workers/static-assets/headers/
+#
+# NOTE: HSTS is intentionally NOT set here — it's applied zone-wide at the Cloudflare
+# edge already. Some headers below (e.g. X-Frame-Options / Referrer-Policy / X-XSS-
+# Protection) may also be set by a zone-level Transform Rule that runs after this file;
+# if a value doesn't take effect, adjust that rule in the Cloudflare dashboard.
+#
+# Permissions-Policy disables device sensors/APIs the site never uses AND opts out of
+# the Privacy Sandbox ad/tracking surface (Topics, Protected Audience, Attribution
+# Reporting, legacy FLoC) — matching Bookracy's "no trackers" promise.
+#
+# `microphone=(self)`, not `()`: the search box has a dictation button (Web Speech
+# API), and `()` denies the microphone to the page itself — verified 2026-09-15 with
+# `document.featurePolicy.allowsFeature("microphone") === false` on prod, so the button
+# rendered but every tap ended in "Microphone access is blocked".
+#
+# static.cloudflareinsights.com / cloudflareinsights.com are for Cloudflare Web Analytics,
+# which the zone auto-injects. It arrives as an EXTERNAL <script src> carrying its own SRI
+# hash, so allowlisting the host costs us no inline execution — analytics simply could not
+# work before this, and every page logged a CSP violation for it.
+#
+# The zone ALSO injects an inline bootstrap for Bot Management JS Detections. That one
+# embeds a fresh Ray ID per request, so its hash changes every response and cannot be
+# pinned; the only way to run it is 'unsafe-inline', which this site (it serves
+# community-uploaded content) will not take. It stays blocked on purpose — the cost is
+# that CF can't browser-fingerprint a visit for bot scoring, and nothing else. Turn the
+# feature off in Security -> Bots if you want the console clean.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com blob: data:; font-src 'self' https://fonts.gstatic.com data: blob:; img-src 'self' data: blob: https:; connect-src 'self' https://api.bookracy.com https://challenges.cloudflare.com https://cloudflareinsights.com blob: data:; frame-src 'self' https://challenges.cloudflare.com blob:; worker-src 'self' blob:; child-src 'self' blob:; media-src 'self' blob: data:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  X-XSS-Protection: 0
+  Permissions-Policy: accelerometer=(), attribution-reporting=(), browsing-topics=(), camera=(), geolocation=(), gyroscope=(), interest-cohort=(), join-ad-interest-group=(), magnetometer=(), microphone=(self), payment=(), run-ad-auction=(), usb=()
+
+# The service worker must never be cached — a stale sw.js pointing at old asset hashes
+# can serve a broken app indefinitely. no-store is the one correct value here.
+/sw.js
+  Cache-Control: no-store
+
+# Vite fingerprints everything under /assets/ (content hash in the filename), so it's
+# safe to cache forever and never revalidate. Huge win for repeat + installed visits.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Unicode fallback fonts for the EPUB -> PDF converter (Noto Sans, OFL). Fetched only
+# when a book contains text jsPDF's built-in Latin fonts can't draw, ~620 KB a face.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable

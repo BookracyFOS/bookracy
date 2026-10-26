@@ -1,0 +1,189 @@
+# Bookracy backend — Cloudflare Worker (TypeScript) + R2 cache.
+# Deploy from this folder:
+#
+#     wrangler r2 bucket create bookracy-books   # one-time
+#     wrangler deploy
+#
+# Then attach api.bookracy.com to this Worker in the dashboard
+# (Workers & Pages -> bookracy-api -> Settings -> Domains & Routes).
+name = "bookracy-api"
+main = "src/index.ts"
+compatibility_date = "2026-06-21"
+
+# Serve ONLY via the custom domain, which sits behind the zone's Bot Fight Mode / WAF.
+# Disabling workers.dev AND preview URLs stops anyone hitting a
+# bookracy-api.<acct>.workers.dev (or *.workers.dev preview) URL directly to
+# bypass those edge protections.
+# (If `wrangler deploy` ever complains the custom domain already exists, delete the
+#  routes line below — `workers_dev = false` alone still does the job.)
+# NOTE: these are top-level keys, so they MUST stay above any [[table]] headers
+# (e.g. [[rules]] below) — TOML assigns keys to the most recent table header.
+workers_dev = false
+preview_urls = false
+routes = [{ pattern = "api.bookracy.com", custom_domain = true }]
+
+# Bundle the Kindle client + installer shell scripts as text so the Worker can
+# serve them verbatim from /kindle/install.sh and /kindle/bookracy.sh.
+#
+# `*.dataset` is the flattened Book Prize Index (src/data/awards.dataset, ~0.4 MB
+# gzipped). Bundling it as TEXT rather than importing the JSON directly matters:
+# esbuild would inline a JSON import as a 1.8 MB object literal that V8 has to
+# build on every cold start, whereas a string is JSON.parse'd lazily on first use
+# (and only in the isolates that actually serve /api/nonfiction).
+[[rules]]
+type = "Text"
+globs = ["**/*.sh", "**/*.dataset"]
+fallthrough = true
+
+# Cached covers + downloaded books live here (zero egress when served via CF).
+[[r2_buckets]]
+binding = "BOOKS"
+bucket_name = "bookracy-books"
+
+# Per-IP rate limit applied to the expensive endpoints (search/trending/download/account).
+# 100 requests / 60s per IP — generous for real browsing, blocks bombarding.
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 100, period = 60 }
+
+# Stricter, dedicated limit on account *creation* (POST /api/account) — the abusable path.
+[[ratelimits]]
+name = "ACCOUNT_CREATE_LIMITER"
+namespace_id = "1002"
+simple = { limit = 5, period = 60 }
+
+# Cover scrape limiter — applied ONLY on a cache miss (see handleCover), so normal
+# browsing (R2-cached covers, even a full 100-cover results page) is never throttled.
+# Generous cap that still bounds random-md5 scrape amplification against Anna's Archive.
+[[ratelimits]]
+name = "COVER_LIMITER"
+namespace_id = "1003"
+simple = { limit = 200, period = 60 }
+
+# Free-text search limit. /api/books is the only endpoint that's both expensive (a live
+# AA scrape + HTML parse whenever the 30m result cache misses) and enumerable, so it gets
+# its own budget far below the shared 100/60s above. A real session runs ~2-3 searches;
+# 30/60s stays invisible to humans (including pagination + rapid query refinement) while
+# being useless to a scraper, which needs orders of magnitude more.
+# Bare-md5 lookups bypass this — see the exemption in src/index.ts.
+[[ratelimits]]
+name = "SEARCH_LIMITER"
+namespace_id = "1005"
+simple = { limit = 30, period = 60 }
+
+# Dedicated limit on community uploads (POST /api/uploads) — the write-heavy,
+# storage-bearing path. 10 uploads / 60s per IP is plenty for a human, blocks bulk abuse.
+[[ratelimits]]
+name = "UPLOAD_LIMITER"
+namespace_id = "1004"
+simple = { limit = 10, period = 60 }
+
+# Opt-in account sync — stores each user's metadata blob (bookmarks/folders/progress/settings).
+# One-time setup, then paste the printed id below:
+#     npx wrangler kv namespace create SYNC
+[[kv_namespaces]]
+binding = "SYNC"
+id = "<SYNC_KV_NAMESPACE_ID>"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DURABLE BACKUP LAYER (Telegram primary + Discord secondary) — bindings ENABLED.
+#
+# KV namespace + book-backup / book-backup-dlq queues are provisioned and wired
+# below. The layer still fails open until the four bot SECRETS are set: until then
+# backupConfigured() is false, so nothing is enqueued and reads fall straight
+# through to R2 + live scrape (downloads + recommendations are unaffected).
+# To finish enabling, set the secrets, then redeploy (`cd backend-worker && pnpm deploy`):
+#     wrangler secret put TELEGRAM_BOT_TOKEN
+#     wrangler secret put TELEGRAM_CHAT_ID          # e.g. -100xxxxxxxxxx (bot must be admin)
+#     wrangler secret put DISCORD_BOT_TOKEN
+#     wrangler secret put DISCORD_CHANNEL_ID        # storage channel (guild boosted to fit chunk size)
+# (Queues require the Workers Paid plan — already active on this account.)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Long-term backup manifest: maps `backup:{md5}` -> where each chunk lives across
+# Telegram/Discord. R2 stays the hot cache; these providers are the durable store.
+[[kv_namespaces]]
+binding = "BACKUPS"
+id = "<BACKUPS_KV_NAMESPACE_ID>"
+
+# Community uploads metadata: contributors (hashed account ids + usernames),
+# uploaded-book records and the per-book download counter that drives the
+# leaderboard. Holds NO secrets — only a one-way hash of each account key.
+# Schema lives in ./migrations; apply with:
+#     wrangler d1 migrations apply DB              # remote (prod)
+#     wrangler d1 migrations apply DB --local      # local dev
+[[d1_databases]]
+binding = "DB"
+database_name = "bookracy-meta"
+database_id = "<D1_DATABASE_ID>"
+
+# Books cached into R2 are enqueued here; the Worker's `queue` handler consumes the
+# queue and uploads each book (in chunks) to Telegram + Discord. The binding name
+# (BACKUP_QUEUE) must match env.BACKUP_QUEUE in src/index.ts — NOT wrangler's
+# auto-suggested "book_backup".
+[[queues.producers]]
+binding = "BACKUP_QUEUE"
+queue = "book-backup"
+
+[[queues.consumers]]
+queue = "book-backup"
+# One book per invocation keeps memory/time bounded (a book can be many chunks).
+max_batch_size = 1
+max_batch_timeout = 30
+max_retries = 5
+dead_letter_queue = "book-backup-dlq"
+
+# The DLQ had no consumer, so a job that burned all 5 retries sat here until the
+# 4-day retention silently dropped it — leaving the book with no manifest and, once
+# R2's 30-day cache expired, no bytes and no record either. The same handler now
+# drains it: one final ingest attempt (transient provider rate limits have usually
+# cleared by now), and anything still failing is written to a durable failure ledger
+# at `backup-failed:{md5}` in the BACKUPS namespace.
+[[queues.consumers]]
+queue = "book-backup-dlq"
+max_batch_size = 1
+max_batch_timeout = 30
+# No onward DLQ: this IS the last stop, so failures are recorded rather than requeued.
+max_retries = 0
+
+[vars]
+# Bytes per chunk. Both providers share ONE chunk size, so this tracks the smaller
+# limit: Discord's UNBOOSTED (tier-0) cap is 10 MiB (verified — 10 MiB uploads, 18 MiB
+# 413s), and Telegram's getFile download cap is 20 MB. 10 MB sits safely under both.
+# Boost the Discord guild to L2 (50 MiB) / L3 (100 MiB) to raise this; keep it <= 20 MB
+# for Telegram regardless.
+BACKUP_CHUNK_BYTES = "10000000"
+
+[observability]
+enabled = true
+
+# Apple metadata lookups (`/api/metadata/<md5>`). Split out of the shared 100/60s bucket
+# for the same reason the bookshelf was: the burst size is set by how many cards are on
+# screen, not by anything the user is choosing to do. A results page fires one lookup per
+# card, so four page-loads inside a minute is already ~100 requests against a 100/60s
+# budget that search, trending and downloads are also spending from.
+#
+# Measured 2026-08-31: /api/metadata took 59,054 requests and **1,290 of them 429'd** —
+# 96% of every 429 the API served that day. A 429 here costs the card its description,
+# rating and page count, which reads as "No summary available" on a book that has one.
+#
+# 300/60s is twelve full pages a minute: invisible to a human, still far below what
+# enumeration needs. The endpoint is also cheap on a hit (7-day edge cache) and only ever
+# costs an upstream call on a miss.
+[[ratelimits]]
+name = "METADATA_LIMITER"
+namespace_id = "1007"
+simple = { limit = 300, period = 60 }
+
+# Bookshelf md5 resolution (`/api/books?query=<md5>`). Split out of the shared 100/60s
+# bucket because the burst size is set by how many books a user has *saved*, not by
+# anything they're doing right now: the shelf fires one lookup per bookmark, in parallel.
+# Measured before this existed — a 120-bookmark shelf sent 147 lookups and 52 came back
+# 429, silently dropping books off the page. Generous, but still bounded: each cold
+# lookup is a real libgen fetch, and unbounded amplification is how our egress IP gets
+# banned upstream (same reasoning as COVER_LIMITER).
+[[ratelimits]]
+name = "MD5_LIMITER"
+namespace_id = "1006"
+simple = { limit = 400, period = 60 }

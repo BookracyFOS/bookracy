@@ -1,0 +1,27 @@
+# ─── Runtime logs ──────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─── Node & package managers ───────────────────────
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+*.local                          # .npmrc.local / .env.local, etc.
+
+# ─── Server-side render build (we still want client dist/) ─
+dist-ssr/
+
+# ─── IDE / editor junk ─────────────────────────────
+.vscode/*
+!.vscode/extensions.json         # keep recommended-extensions file
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?d

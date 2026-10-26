@@ -1,0 +1,37 @@
+# Bookracy frontend — Cloudflare Workers (static assets).
+# In 2026 Pages merged into Workers, so you just run, from this folder:
+#
+#     wrangler deploy
+#
+# The [build] step builds the SPA first, then Wrangler uploads ./dist.
+# After the first deploy, attach bookracy.com to this Worker in the dashboard
+# (Workers & Pages -> bookracy -> Settings -> Domains & Routes).
+name = "bookracy"
+compatibility_date = "2026-06-21"
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+[build]
+command = "pnpm build"
+
+# Mirrors what's already toggled on in the dashboard, so a deploy from here doesn't
+# silently reset it. The top-level `enabled = false` is NOT "observability off" — the
+# per-signal blocks below win, so logs are on and traces stay off (traces bill
+# separately and a static-asset worker has nothing useful to trace).
+# MUST stay last: TOML assigns bare keys to the most recent table header.
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1

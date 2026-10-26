@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>Bookracy — Free Books, Comics &amp; Manga | Why Pay for Knowledge?</title>
+    <meta
+      name="description"
+      content="Bookracy is a free, open-source library of millions of books, comics, manga, articles and publications. Read online or download instantly — no paywalls, no sign-up. Knowledge should be free."
+    />
+    <link rel="canonical" href="https://bookracy.com/" />
+
+    <!-- Crawling / indexing -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="author" content="Bookracy" />
+    <meta name="keywords" content="Bookracy, free books, free ebooks, online library, read books online, download books, comics, manga, free education, open access, digital library, public archive" />
+
+    <!-- Appearance -->
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#16161a" media="(prefers-color-scheme: dark)" />
+
+    <!-- Icons & PWA -->
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="mask-icon" href="/logo.svg" color="#7c3aed" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="application-name" content="Bookracy" />
+    <meta name="apple-mobile-web-app-title" content="Bookracy" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Open Graph (Facebook, Discord, iMessage, LinkedIn, etc.) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Bookracy" />
+    <meta property="og:title" content="Bookracy — Why Pay for Knowledge?" />
+    <meta
+      property="og:description"
+      content="A free, open-source library of millions of books, comics and manga. Read online or download instantly — no paywalls."
+    />
+    <meta property="og:url" content="https://bookracy.com/" />
+    <meta property="og:image" content="https://bookracy.com/og-image.png" />
+    <meta property="og:image:secure_url" content="https://bookracy.com/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Bookracy — Why pay for knowledge?" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Bookracy — Why Pay for Knowledge?" />
+    <meta name="twitter:description" content="A free, open-source library of millions of books, comics and manga. Read online or download instantly — no paywalls." />
+    <meta name="twitter:image" content="https://bookracy.com/og-image.png" />
+    <meta name="twitter:image:alt" content="Bookracy — Why pay for knowledge?" />
+
+    <!-- Performance hints -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.bookracy.com" crossorigin />
+    <link rel="dns-prefetch" href="https://api.bookracy.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <!-- Site search -->
+    <link rel="search" href="/opensearch.xml" type="application/opensearchdescription+xml" title="Bookracy Search" />
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://bookracy.com/#organization",
+            "name": "Bookracy",
+            "url": "https://bookracy.com/",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://bookracy.com/icon-512.png",
+              "width": 512,
+              "height": 512
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://bookracy.com/#website",
+            "url": "https://bookracy.com/",
+            "name": "Bookracy",
+            "description": "Free, open-source library of millions of books, comics, manga, articles and publications. Read online or download — no paywalls.",
+            "inLanguage": "en",
+            "publisher": { "@id": "https://bookracy.com/#organization" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": "https://bookracy.com/?q={search_term_string}"
+              },
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://bookracy.com/#webapp",
+            "name": "Bookracy",
+            "url": "https://bookracy.com/",
+            "applicationCategory": "BooksApplication",
+            "operatingSystem": "Any",
+            "browserRequirements": "Requires a modern web browser with JavaScript enabled.",
+            "description": "Free, open-source library of millions of books, comics, manga, articles and publications. Read online or download — no paywalls.",
+            "inLanguage": "en",
+            "isAccessibleForFree": true,
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "featureList": [
+              "Search millions of books, comics and manga",
+              "Read online in the browser",
+              "Download instantly — no sign-up required",
+              "Installable PWA with offline support",
+              "Optional encrypted cloud sync"
+            ],
+            "publisher": { "@id": "https://bookracy.com/#organization" }
+          }
+        ]
+      }
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <noscript>Please enable JavaScript to use Bookracy.</noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

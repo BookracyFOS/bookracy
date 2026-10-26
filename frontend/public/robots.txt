@@ -1,0 +1,11 @@
+# Bookracy — https://bookracy.com
+# Crawlers welcome. The API is served from a separate origin (api.bookracy.com).
+
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /login
+Disallow: /register
+
+Sitemap: https://bookracy.com/sitemap.xml
+Sitemap: https://bookracy.com/sitemap-images.xml
