@@ -22,11 +22,12 @@
 // blast radius, which was the wrong trade.
 
 const INTERNAL_ORIGIN = "https://bookracy.internal";
+const LEADING_SLASHES_RE = /^\/+/;
 
 function cacheKey(path: string): Request {
   // GET request is the only cacheable verb for cache.match/put. Origin is synthetic;
   // there's no real host, this URL is just the cache namespace identifier.
-  return new Request(`${INTERNAL_ORIGIN}/${path.replace(/^\/+/, "")}`);
+  return new Request(`${INTERNAL_ORIGIN}/${path.replace(LEADING_SLASHES_RE, "")}`);
 }
 
 async function cacheGetText(path: string): Promise<string | null> {

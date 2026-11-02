@@ -278,3 +278,29 @@ test("prune never runs on the vast majority of writes", async () => {
   await withRandom([0.9], () => searchIndex.remember({ DB: db }, [book()]));
   assert.equal(deletes(db).length, 0);
 });
+
+
+test("findByQuery preserves quoting for Unicode, punctuation and long token lists", async () => {
+  const cases: [string, string][] = [
+    ["single", '"single"*'],
+    ["A--B__C", '"a" "b" "c"*'],
+    ['" AND OR NOT "', '"and" "or" "not"*'],
+    ["CAFÉ e\u0301", '"café" "e"*'],
+    ["İSTANBUL", '"i" "stanbul"*'],
+    ["𐐀 １２３", '"𐐨" "１２３"*'],
+    ["\ud800x\udfff", '"x"*'],
+  ];
+  const tokens = Array.from({ length: 128 }, (_, i) => `token${i}`);
+  cases.push([tokens.join(" "), tokens.map((t, i) => (i === tokens.length - 1 ? `"${t}"*` : `"${t}"`)).join(" ")]);
+  for (const [query, expected] of cases) {
+    const db = fakeDb([]);
+    await searchIndex.findByQuery({ DB: db }, query, 7);
+    assert.equal(db.calls[0].binds[0], expected, JSON.stringify(query));
+    assert.equal(db.calls[0].binds[1], 7);
+  }
+  for (const query of ["", "\u0301\u200b\u0000", "💖😀", '*^:() " -']) {
+    const db = fakeDb([]);
+    assert.deepEqual(await searchIndex.findByQuery({ DB: db }, query, 7), []);
+    assert.equal(db.calls.length, 0);
+  }
+});

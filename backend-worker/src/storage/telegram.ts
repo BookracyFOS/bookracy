@@ -68,11 +68,14 @@ async function tgCall<T>(token: string, method: string, makeBody?: () => FormDat
 /** Upload one chunk as a document and return its message + reusable file id. */
 export async function uploadChunk(env: BackupEnv, bytes: ArrayBuffer, filename: string): Promise<TgUploaded> {
   const token = env.TELEGRAM_BOT_TOKEN!;
+  // Blobs are immutable, so one copy of the chunk serves every attempt; each attempt
+  // still gets its own fresh FormData.
+  const blob = new Blob([bytes], { type: "application/octet-stream" });
   const form = () => {
     const f = new FormData();
     f.append("chat_id", env.TELEGRAM_CHAT_ID!);
     f.append("disable_content_type_detection", "true");
-    f.append("document", new Blob([bytes], { type: "application/octet-stream" }), filename);
+    f.append("document", blob, filename);
     return f;
   };
 

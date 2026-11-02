@@ -103,12 +103,17 @@ function toBook(entry: RawEntry): AwardBook {
   };
 }
 
+let programCounts: Map<string, number> | null = null;
 export function programList(): AwardProgram[] {
-  const counts = new Map<string, number>();
-  for (const b of dataset().books) {
-    // A book can place in several categories of the same prize; count it once.
-    for (const id of new Set(b.w.map((w) => w[0]))) counts.set(id, (counts.get(id) ?? 0) + 1);
+  if (!programCounts) {
+    const counts = new Map<string, number>();
+    for (const b of dataset().books) {
+      // A book can place in several categories of the same prize; count it once.
+      for (const id of new Set(b.w.map((w) => w[0]))) counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    programCounts = counts;
   }
+  const counts = programCounts;
   return dataset()
     .programs.map((p) => ({ id: p.id, name: p.n, organization: p.o, geography: p.g, url: p.u, count: counts.get(p.id) ?? 0 }))
     .filter((p) => p.count > 0)
@@ -126,6 +131,19 @@ export interface AwardQuery {
   limit?: number;
 }
 
+// Latest year a credit carries, or undefined when none does — the same value as
+// `Math.max(...entry.w.map((w) => w[2]).filter(Boolean))`, without two arrays per book.
+function latestAwardYear(entry: RawEntry): number | undefined {
+  let best = -Infinity;
+  let found = false;
+  for (const w of entry.w) {
+    if (!w[2]) continue;
+    found = true;
+    best = Math.max(best, w[2]);
+  }
+  return found ? best : undefined;
+}
+
 function matches(entry: RawEntry, i: number, f: AwardQuery): boolean {
   if (f.program && !entry.w.some((w) => w[0] === f.program)) return false;
   if (f.subject && entry.s !== f.subject) return false;
@@ -134,8 +152,7 @@ function matches(entry: RawEntry, i: number, f: AwardQuery): boolean {
     const from = Number(f.decade);
     // Match on when the book was *honoured* when we know it, else publication year —
     // a 1985 book winning a 2010 prize should surface under the 2010s.
-    const years = entry.w.map((w) => w[2]).filter(Boolean);
-    const best = years.length ? Math.max(...years) : entry.y;
+    const best = latestAwardYear(entry) ?? entry.y;
     if (!best || best < from || best >= from + 10) return false;
   }
   if (f.q && !searchIndex()[i].includes(f.q)) return false;
@@ -144,10 +161,7 @@ function matches(entry: RawEntry, i: number, f: AwardQuery): boolean {
 
 const STATUS_WEIGHT: Record<string, number> = { winner: 0, co_winner: 1, finalist: 2, shortlist: 3, longlist: 4, honorable_mention: 5 };
 
-const bestYear = (e: RawEntry) => {
-  const years = e.w.map((w) => w[2]).filter(Boolean);
-  return years.length ? Math.max(...years) : e.y || 0;
-};
+const bestYear = (e: RawEntry) => latestAwardYear(e) ?? (e.y || 0);
 
 export function queryBooks(f: AwardQuery): { total: number; books: AwardBook[] } {
   const all = dataset().books;

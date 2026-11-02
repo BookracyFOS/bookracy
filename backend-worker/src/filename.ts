@@ -8,17 +8,18 @@
 // So the header carries both halves: an ASCII-only `filename=` that anything can read,
 // and `filename*=UTF-8''…`, which every current browser prefers when both are present.
 
+// One pass instead of two: CR/LF already sit inside \u0000-\u001f and removal is
+// per-character, so a single merged class gives identical output, compiled once.
+// eslint-disable-next-line no-control-regex
+const UNSAFE_FILENAME_CHARS = /[\u0000-\u001f\u007f"\\]+/g;
+
 /**
  * Strip anything that could malform / inject the Content-Disposition header: quotes and
  * backslashes (which would break out of the quoted filename) plus CR/LF and other control
  * chars (the Workers runtime throws on raw CR/LF).
  */
 export function safeFilename(name: string): string {
-  const cleaned = name
-    .replace(/[\r\n"\\]+/g, "")
-    // eslint-disable-next-line no-control-regex
-    .replace(/[\u0000-\u001f\u007f]+/g, "")
-    .trim();
+  const cleaned = name.replace(UNSAFE_FILENAME_CHARS, "").trim();
   return cleaned || "download";
 }
 
