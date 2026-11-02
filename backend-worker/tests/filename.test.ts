@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { safeFilename, attachmentDisposition } from "../src/filename.ts";
+import { safeFilename, attachmentDisposition, inlineDisposition } from "../src/filename.ts";
 
 // The two titles that were actually tripping the runtime's non-ASCII warning in prod.
 const JP_BOTANY = "日本の野生植物 草本 I-III+木本 I-II+シダ(写真) WILD FLOWERS OF JAPAN.pdf";
@@ -56,4 +56,30 @@ test("safeFilename: strips CR/LF and control chars, never returns empty", () => 
   assert.equal(safeFilename("a\r\nb.epub"), "ab.epub");
   assert.equal(safeFilename("\u0000\u001f  "), "download");
   assert.equal(safeFilename(""), "download");
+});
+
+
+test("filename disposition: five escape characters retain exact uppercase encodings", () => {
+  for (const name of ["!", "'", "(", ")", "*", "'()!*".repeat(100), "日本語 (写真)!*.pdf", "", "\r\n\0", ".pdf", "é e\u0301 📚.epub"]) {
+    const safe = safeFilename(name);
+    const encoded = encodeURIComponent(safe).replace(/['()!*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+    const attachment = attachmentDisposition(name);
+    assert.equal(attachment.slice(attachment.indexOf("filename*=UTF-8''") + "filename*=UTF-8''".length), encoded);
+    assert.equal(inlineDisposition(name).replace(/^inline;/, "attachment;"), attachment);
+  }
+});
+
+test("filename disposition: every ASCII code unit keeps legacy encoding", () => {
+  for (let code = 0; code < 128; code++) {
+    const name = `A${String.fromCharCode(code)}.pdf`;
+    const encoded = encodeURIComponent(safeFilename(name)).replace(/['()!*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+    assert.equal(params(attachmentDisposition(name)).ext, encoded);
+  }
+});
+
+test("filename disposition: lone surrogates still throw URIError", () => {
+  for (const name of ["\ud800", "\udfff", "bad\ud800.pdf", "\udfff\ud800"]) {
+    assert.throws(() => attachmentDisposition(name), URIError);
+    assert.throws(() => inlineDisposition(name), URIError);
+  }
 });

@@ -359,6 +359,9 @@ export function parseLibraryLolUrl(html: string, base = "https://library.lol"): 
 
 // CIDv1 (bafy…/bafk…, base32) or CIDv0 (Qm…, base58). Case-sensitive (CIDs are).
 const IPFS_CID = "(baf[yk][a-z2-7]{20,}|Qm[1-9A-HJ-NP-Za-km-z]{44})";
+const IPFS_TAGGED_RE = new RegExp(`(?:ipfs_cid:|ipfs://)${IPFS_CID}`, "g");
+const IPFS_LABELLED_RE = new RegExp(`IPFS\\s*CID[\\s\\S]{0,300}?${IPFS_CID}`, "i");
+const IPFS_ANY_RE = new RegExp(IPFS_CID, "g");
 
 /**
  * Extract ALL IPFS CIDs from an Anna's Archive `/md5/<md5>` page (the same page we
@@ -379,12 +382,12 @@ export function parseIpfsCids(html: string): string[] {
     }
   };
   // Explicitly tagged CIDs (one per IPFS provider AA knows about).
-  for (const m of html.matchAll(new RegExp(`(?:ipfs_cid:|ipfs://)${IPFS_CID}`, "g"))) add(m[1]);
+  for (const m of html.matchAll(IPFS_TAGGED_RE)) add(m[1]);
   // Fallback for layouts without the tag: the CID after an "IPFS CID" label, then any.
   if (!out.length) {
-    const labelled = html.match(new RegExp(`IPFS\\s*CID[\\s\\S]{0,300}?${IPFS_CID}`, "i"));
+    const labelled = html.match(IPFS_LABELLED_RE);
     if (labelled) add(labelled[1]);
-    for (const m of html.matchAll(new RegExp(IPFS_CID, "g"))) {
+    for (const m of html.matchAll(IPFS_ANY_RE)) {
       add(m[1]);
       if (out.length >= 6) break;
     }
@@ -402,13 +405,16 @@ export function parseIpfsCids(html: string): string[] {
 const RANK_STOPWORDS = new Set(["the", "a", "an", "of", "and", "or", "to", "in", "vol", "volume", "no", "issue", "part"]);
 
 function rankNormalize(s: string): string {
-  return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  return (s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** Tokens of an already-normalized string (skips re-running rankNormalize). */
+function normTokens(norm: string): string[] {
+  return norm.split(" ").filter((t) => t && !RANK_STOPWORDS.has(t));
 }
 
 function rankTokens(s: string): string[] {
-  return rankNormalize(s)
-    .split(" ")
-    .filter((t) => t && !RANK_STOPWORDS.has(t));
+  return normTokens(rankNormalize(s));
 }
 
 /** The salient issue number in a string: prefer a raw "#N", else the last small integer. */
@@ -420,20 +426,20 @@ function issueNumber(s: string): number | null {
 }
 
 /** Small integers (< 1000, i.e. not 4-digit years) in a title — candidate issue numbers. */
-function titleNumbers(s: string): Set<number> {
-  return new Set([...rankNormalize(s).matchAll(/\b(\d{1,3})\b/g)].map((m) => parseInt(m[1], 10)));
+function titleNumbers(norm: string): Set<number> {
+  return new Set([...norm.matchAll(/\b(\d{1,3})\b/g)].map((m) => parseInt(m[1], 10)));
 }
 
 export function rankBooks<T extends { title: string; book_filetype?: string; book_year?: string }>(query: string, books: T[]): T[] {
   const qNorm = rankNormalize(query);
-  const qTokens = rankTokens(query);
+  const qTokens = normTokens(qNorm);
   if (!qTokens.length || books.length < 2) return books;
 
   const qIssue = issueNumber(query);
 
   const scored = books.map((book, index) => {
     const titleNorm = rankNormalize(book.title);
-    const titleTokenList = rankTokens(book.title);
+    const titleTokenList = normTokens(titleNorm);
     const tTokens = new Set(titleTokenList);
 
     let score = 0;
@@ -451,7 +457,7 @@ export function rankBooks<T extends { title: string; book_filetype?: string; boo
 
     // Issue-number awareness (the "#1 vs part five / vol 2" problem).
     if (qIssue !== null) {
-      const tNums = titleNumbers(book.title);
+      const tNums = titleNumbers(titleNorm);
       if (tNums.has(qIssue)) score += 5;
       else if (tNums.size) score -= 4; // title carries a DIFFERENT issue number
     }
@@ -493,7 +499,10 @@ function htmlText(raw: string): string {
 function libgenRowTitle(rowHtml: string): string {
   // 1) The tooltip attribute carries a clean "…ID: <n><br><title>" — take the tail.
   const tip = rowHtml.match(/title="[^"]*ID:\s*\d+<br>([^"]+)"/i);
-  if (tip && htmlText(tip[1])) return htmlText(tip[1]);
+  if (tip) {
+    const title = htmlText(tip[1]);
+    if (title) return title;
+  }
   // 2) Otherwise the last edition.php link text (usually the specific edition title).
   const links = [...rowHtml.matchAll(/<a[^>]*edition\.php[^>]*>([\s\S]*?)<\/a>/gi)];
   for (let i = links.length - 1; i >= 0; i--) {
@@ -734,6 +743,9 @@ const roNormalizeUrl = (url: string): string => {
  * `<p>` blocks that follow (until the next <h2>) hold its metadata + description.
  * Operates on the raw HTML (the source hand-authors uppercase `<A HREF>` tags).
  */
+const roFieldRe = (label: string): RegExp => new RegExp(`${label}\\s*:?\\s*</strong>\\s*([\\s\\S]*?)</p>`, "i");
+const RO_FIELD_RES = new Map(["Issues", "Years", "Events", "First Appearances"].map((l): [string, RegExp] => [l, roFieldRe(l)]));
+
 export function parseReadingOrderMaster(html: string): Omit<ReadingOrderEra, "issues">[] {
   const cm = html.match(/class="[^"]*entry-content[^"]*"([\s\S]*?)<\/article/i);
   const content = cm ? cm[1] : html;
@@ -759,7 +771,7 @@ export function parseReadingOrderMaster(html: string): Omit<ReadingOrderEra, "is
     seen.add(id);
 
     const field = (label: string): string | undefined => {
-      const m = body.match(new RegExp(`${label}\\s*:?\\s*</strong>\\s*([\\s\\S]*?)</p>`, "i"));
+      const m = body.match(RO_FIELD_RES.get(label) ?? roFieldRe(label));
       const v = m ? htmlToText(m[1]) : "";
       return v || undefined;
     };
@@ -1058,7 +1070,7 @@ export function titleAuthorMatch(queryTitle: string, queryAuthor: string, candTi
   const author = rankNormalize(queryAuthor);
   if (!author) return q.length >= 2; // one-word title with no author is too ambiguous
   const blob = rankNormalize(candAuthorBlob);
-  return rankTokens(queryAuthor).some((w) => w.length >= 3 && blob.includes(w));
+  return normTokens(author).some((w) => w.length >= 3 && blob.includes(w));
 }
 
 export function gutenbergMatches(queryTitle: string, queryAuthor: string, candTitle: string, candAuthors: string[]): boolean {

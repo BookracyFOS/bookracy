@@ -90,6 +90,9 @@ interface IndexRow {
 
 const COLS = "md5, title, author, ext, size, lang, year, source";
 
+/** COLS qualified with the base-table alias for the FTS join — built once, not per query. */
+const S_COLS = COLS.split(", ").map((c) => `s.${c}`).join(", ");
+
 /**
  * Sources whose results are keyed by a *synthetic* md5 (see syntheticMd5 in index.ts)
  * rather than a real upstream file id.
@@ -230,6 +233,9 @@ async function prune(env: SearchIndexEnv): Promise<void> {
   }
 }
 
+/** Token separator for ftsMatch — hoisted so the pattern is built once, not per query. */
+const FTS_SPLIT_RE = /[^\p{L}\p{N}]+/u;
+
 /**
  * Build an FTS5 MATCH expression from raw user input.
  *
@@ -242,9 +248,9 @@ async function prune(env: SearchIndexEnv): Promise<void> {
  * "berserk" should still find "Berserker", which token-exact matching would miss.
  */
 function ftsMatch(query: string): string {
-  const tokens = query.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const tokens = query.toLowerCase().split(FTS_SPLIT_RE).filter(Boolean);
   if (!tokens.length) return "";
-  return tokens.map((t, i) => (i === tokens.length - 1 ? `"${t}"*` : `"${t}"`)).join(" ");
+  return `"${tokens.join('" "')}"*`;
 }
 
 /**
@@ -269,7 +275,7 @@ export async function findByQuery(env: SearchIndexEnv, query: string, limit: num
   if (!match) return [];
   try {
     const rows = await env.DB.prepare(
-      `SELECT ${COLS.split(", ").map((c) => `s.${c}`).join(", ")}
+      `SELECT ${S_COLS}
        FROM search_index_fts f JOIN search_index s ON s.rowid = f.rowid
        WHERE search_index_fts MATCH ? ORDER BY f.rank LIMIT ?`,
     )

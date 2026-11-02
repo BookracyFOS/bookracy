@@ -441,6 +441,21 @@ function fileExt(filetype: string): string {
   return ft && ft !== "unknown filetype" && /^[a-z0-9]{1,6}$/.test(ft) ? `.${ft}` : "";
 }
 
+// Drop a trailing `ext` (as returned by fileExt: lowercase ".[a-z0-9]{1,6}") from a title,
+// ASCII case-insensitively. Same result as `title.replace(new RegExp(`\\${ext}$`, "i"), "")`
+// (a non-unicode /i regex only folds ASCII letters) without compiling a RegExp for every
+// search result we serialise.
+function stripTrailingExt(title: string, ext: string): string {
+  const start = title.length - ext.length;
+  if (!ext || start < 0) return title;
+  for (let i = 0; i < ext.length; i++) {
+    let c = title.charCodeAt(start + i);
+    if (c >= 65 && c <= 90) c |= 32; // A-Z → a-z
+    if (c !== ext.charCodeAt(i)) return title;
+  }
+  return title.slice(0, start);
+}
+
 // Title/author query for a /cover/ link. Kept short: these ride on every result in
 // every search response, and Apple's own matcher truncates well before this anyway.
 function coverQuery(title: string, author: string): string {
@@ -460,7 +475,7 @@ function toBookItem(raw: RawBook, origin: string) {
   // open files with an unrecognised double extension. Strip a matching trailing ext
   // from the title before we append our own so the served filename is always clean.
   const titleWithoutExt = ext
-    ? raw.title.replace(new RegExp(`\\${ext}$`, "i"), "")
+    ? stripTrailingExt(raw.title, ext)
     : raw.title;
   const safeTitle = titleWithoutExt.replace(/[\\/]+/g, "-");
   // Carry the author on the download link so the metadata-keyed sources (Gutenberg) can
@@ -1129,13 +1144,20 @@ function applyFacets(results: RawBook[], f: SearchFilters, query = ""): RawBook[
   if (f.sort && ALLOWED_SORT.has(f.sort)) {
     const year = (b: RawBook) => parseInt(b.book_year || "", 10) || 0;
     const size = (b: RawBook) => sizeToBytes(b.book_size);
-    const cmp: Record<string, (a: RawBook, b: RawBook) => number> = {
-      newest: (a, b) => year(b) - year(a),
-      oldest: (a, b) => (year(a) || Infinity) - (year(b) || Infinity),
-      largest: (a, b) => size(b) - size(a),
-      smallest: (a, b) => (size(a) || Infinity) - (size(b) || Infinity),
+    const cmp: Record<string, (a: number, b: number) => number> = {
+      newest: (a, b) => b - a,
+      oldest: (a, b) => (a || Infinity) - (b || Infinity),
+      largest: (a, b) => b - a,
+      smallest: (a, b) => (a || Infinity) - (b || Infinity),
     };
-    out = [...out].sort(cmp[f.sort]);
+    // Parse each row's sort key once up front instead of twice per comparison
+    // (the size key runs a regex). Stable sort over the same keys → same order.
+    const key = f.sort === "newest" || f.sort === "oldest" ? year : size;
+    const by = cmp[f.sort];
+    out = out
+      .map((b) => ({ b, k: key(b) }))
+      .sort((x, y) => by(x.k, y.k))
+      .map((d) => d.b);
   }
   return out;
 }

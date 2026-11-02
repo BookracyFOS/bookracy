@@ -54,8 +54,9 @@ export const APPLE_GENRES: { id: string; name: string }[] = [
 ];
 
 const GENRE_IDS = new Set(APPLE_GENRES.map((g) => g.id));
+const GENRE_NAMES = new Map(APPLE_GENRES.map((g) => [g.id, g.name]));
 export const isAppleGenre = (id: string): boolean => GENRE_IDS.has(id);
-export const appleGenreName = (id: string): string => APPLE_GENRES.find((g) => g.id === id)?.name ?? "";
+export const appleGenreName = (id: string): string => GENRE_NAMES.get(id) ?? "";
 
 export interface AppleBook {
   /** Apple's catalog id — stable, used as a React key and for metadata lookups. */
@@ -492,14 +493,10 @@ function toMeta(entry: { id: string; attributes: Record<string, unknown> }): App
 // regex over <key>term</key><string>…</string> pairs beats pulling in an XML parser.
 const HINT_RE = /<key>term<\/key>\s*<string>([^<]*)<\/string>/g;
 
-const unescapeXml = (s: string) =>
-  s
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, "&");
+const XML_ENTITY_RE = /&(?:lt|gt|quot|#39|apos|amp);/g;
+const XML_ENTITIES: Record<string, string> = { "&lt;": "<", "&gt;": ">", "&quot;": '"', "&#39;": "'", "&apos;": "'", "&amp;": "&" };
+
+const unescapeXml = (s: string) => s.replace(XML_ENTITY_RE, (m) => XML_ENTITIES[m]);
 
 /**
  * Store search suggestions for a partial query.

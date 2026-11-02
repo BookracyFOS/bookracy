@@ -127,3 +127,32 @@ test("parseLibgenUrl: keeps absolute links as-is, returns null when absent", () 
   assert.equal(parseLibgenUrl(`<a href="https://cdn.example/get.php?md5=abc">d</a>`, "https://libgen.li"), "https://cdn.example/get.php?md5=abc");
   assert.equal(parseLibgenUrl(`<a href="/file.php?id=1">nope</a>`, "https://libgen.li"), null);
 });
+
+function tooltipRow(title: string): string {
+  return `<table id="tablelibgen"><tr>
+    <td><b>Bold fallback</b><a title="ID: 1<br>${title}" href="edition.php?id=1">Edition fallback</a></td>
+    <td>Author</td><td>Publisher</td><td>1965</td><td>English</td><td>300</td><td>1 MB</td><td>epub</td>
+    <td><a href="/ads.php?md5=0123456789abcdef0123456789abcdef">1</a></td>
+  </tr></table>`;
+}
+
+test("parseLibgenSearch: tooltip title decoding preserves the complete book", () => {
+  assert.deepEqual(parseLibgenSearch(tooltipRow("  A &amp; <i>B</i>\n C  ")), [{
+    md5: "0123456789abcdef0123456789abcdef",
+    title: "A & B C",
+    author: "Author",
+    description: "",
+    book_lang: "English",
+    book_filetype: "EPUB",
+    book_size: "1 MB",
+    book_year: "1965",
+    book_content: "Unknown Content",
+    book_source: "Library Genesis",
+  }]);
+});
+
+test("parseLibgenSearch: blank decoded tooltip retains the original bold fallback", () => {
+  for (const title of [" ", "&nbsp;", "<i></i>"]) {
+    assert.equal(parseLibgenSearch(tooltipRow(title))[0]?.title, "Bold fallback");
+  }
+});
